@@ -20,6 +20,22 @@ TOPIC_COLORS = [
     "ResolveColorPurple"
 ]
 
+topic_color_map = {}
+color_pool = TOPIC_COLORS.copy()
+random.shuffle(color_pool)
+
+def get_topic_color(topic):
+    global color_pool
+
+    if topic not in topic_color_map:
+        if not color_pool:
+            color_pool = TOPIC_COLORS.copy()
+            random.shuffle(color_pool)
+
+        topic_color_map[topic] = color_pool.pop()
+
+    return topic_color_map[topic]
+
 # Global per evitar col·lisions de TAGs amb l'inici de TOPICs
 topic_frames = set()
 
@@ -50,7 +66,7 @@ def write_topic_block(f, idx, topic, f_in, f_out, speakers_set):
     duration = f_out - f_in + 1
     tc_in = frames_to_tc(f_in)
     tc_out = frames_to_tc(f_out)
-    color = random.choice(TOPIC_COLORS)
+    color = get_topic_color(topic)
 
     f.write(f"{idx:03}  001      V     C        {tc_in} {tc_out} {tc_in} {tc_out}  \n")
     f.write(f"topic: {topic}, speakers: {', '.join(sorted(speakers_set))} |C:{color} |M:{topic} |D:{duration}\n\n")
