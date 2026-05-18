@@ -18,18 +18,40 @@ def run_ffprobe_json(cmd):
         print("FFPROBE FAILED:", cmd)
         return None
 
-def get_stream_info(path):
-    data = run_ffprobe_json([
-        FFPROBE, "-v", "error",
-        "-count_frames",
+def get_fast_stream_info(path):
+    return run_ffprobe_json([
+        FFPROBE,
+        "-v", "error",
         "-select_streams", "v:0",
         "-show_entries",
-        "stream=nb_read_frames,avg_frame_rate,r_frame_rate,time_base",
+        "stream=nb_frames,avg_frame_rate,r_frame_rate,time_base",
         "-show_entries",
         "format=duration",
         "-of", "json",
         path
     ])
+
+def get_precise_frame_count(path):
+    data = run_ffprobe_json([
+        FFPROBE,
+        "-v", "error",
+        "-count_frames",
+        "-select_streams", "v:0",
+        "-show_entries",
+        "stream=nb_read_frames",
+        "-of", "json",
+        path
+    ])
+
+    if not data:
+        return "N/A"
+
+    stream = data.get("streams", [{}])[0]
+
+    return stream.get("nb_read_frames", "N/A")
+
+def get_stream_info(path):
+    data = get_fast_stream_info(path)
 
     if not data:
         return {
@@ -43,8 +65,13 @@ def get_stream_info(path):
     stream = data.get("streams", [{}])[0]
     fmt = data.get("format", {})
 
+    frames = stream.get("nb_frames")
+    if not frames or frames == "N/A":
+        print("nb_frames unavailable → falling back to slow frame count")
+        frames = get_precise_frame_count(path)
+
     return {
-        "frames": stream.get("nb_read_frames", "N/A"),
+        "frames": frames,
         "avg_fps": stream.get("avg_frame_rate", "N/A"),
         "r_fps": stream.get("r_frame_rate", "N/A"),
         "time_base": stream.get("time_base", "N/A"),
