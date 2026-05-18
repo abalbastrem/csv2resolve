@@ -1,8 +1,9 @@
 import csv
 import os
+import argparse
 
-METADATA_FILE = "metadata.csv"
-CSV_FILE = "master.csv"
+METADATA_FILE = "video_analysis/metadata.csv"
+CSV_FILE = "../test_multi.csv"
 OUTPUT_XML = "output.xml"
 
 def load_metadata():
@@ -16,7 +17,59 @@ def load_metadata():
             }
     return metadata
 
-def generate_xml(csv_path, output_path):
+def validate_clips(clips, metadata):
+    seen_gids = set()
+    prev_gid = None
+
+    for i, c in enumerate(clips):
+
+        # --- GID ---
+        try:
+            gid = int(c["global_id"])
+        except ValueError:
+            raise Exception(f"GID no numèric a index {i}: {c['global_id']}")
+
+        if gid in seen_gids:
+            raise Exception(f"GID duplicat: {gid}")
+        seen_gids.add(gid)
+
+        if prev_gid is not None and gid <= prev_gid:
+            raise Exception(
+                f"GID no ascendent a index {i}: {gid} <= {prev_gid}"
+            )
+        prev_gid = gid
+
+        # --- CHECK temporal ---
+        if c["src_in"] >= c["src_out"]:
+            raise Exception(f"SRC_IN >= SRC_OUT a GID {gid}")
+
+        if c["tl_in"] >= c["tl_out"]:
+            raise Exception(f"TL_IN >= TL_OUT a GID {gid}")
+
+        # --- durada coherent ---
+        expected = c["src_out"] - c["src_in"]
+        if expected != c["dur"]:
+            raise Exception(
+                f"Durada incorrecta a GID {gid}: FR_DUR={c['dur']} vs calc={expected}"
+            )
+
+        # --- metadata consistència ---
+        video_name = c["video_name"]
+        if video_name not in metadata:
+            raise Exception(f"Metadata missing: {video_name}")
+
+        if metadata[video_name]["duration"] <= 0:
+            raise Exception(f"Durada invàlida metadata: {video_name}")
+
+    # --- timeline order check (TL) ---
+    for i in range(1, len(clips)):
+        if clips[i]["tl_in"] < clips[i-1]["tl_out"]:
+            raise Exception(
+                f"Overlap TL entre GID {clips[i-1]['global_id']} i {clips[i]['global_id']}"
+            )
+    
+
+def generate_xml(csv_path, output_path, relaxed=False):
     metadata = load_metadata()
     clips = []
 
@@ -37,7 +90,8 @@ def generate_xml(csv_path, output_path):
             video_info = metadata[video_name]
 
             clips.append({
-                "id": row["#"],
+                "global_id": row["GID"],
+                "local_id": row["LID"],
                 "video_name": video_name,
                 "video_path": video_info["path"],
                 "video_duration": video_info["duration"],
@@ -103,7 +157,7 @@ def generate_xml(csv_path, output_path):
         file_block, file_id = get_file_block(c)
 
         return f"""
-          <clipitem id="clip{c['id']}">
+          <clipitem id="clip{c['global_id']}">
             <name>{c['video_name']}</name>
             <duration>{c['dur']}</duration>
             <rate><timebase>24</timebase><ntsc>TRUE</ntsc></rate>
@@ -113,14 +167,14 @@ def generate_xml(csv_path, output_path):
             <in>{c['src_in']}</in>
             <out>{c['src_out']}</out>
             {file_block}
-            <link><linkclipref>clip{c['id']}</linkclipref></link>
-            <link><linkclipref>clip{c['id']}a</linkclipref></link>
+            <link><linkclipref>clip{c['global_id']}</linkclipref></link>
+            <link><linkclipref>clip{c['global_id']}a</linkclipref></link>
           </clipitem>
         """, file_id
 
     def audio_clip_xml(c, file_id):
         return f"""
-          <clipitem id="clip{c['id']}a">
+          <clipitem id="clip{c['global_id']}a">
             <start>{c['tl_in']}</start>
             <end>{c['tl_out']}</end>
             <in>{c['src_in']}</in>
@@ -131,7 +185,7 @@ def generate_xml(csv_path, output_path):
               <trackindex>1</trackindex>
             </sourcetrack>
             <link>
-              <linkclipref>clip{c['id']}</linkclipref>
+              <linkclipref>clip{c['global_id']}</linkclipref>
               <mediatype>video</mediatype>
             </link>
           </clipitem>
@@ -215,4 +269,8 @@ def generate_xml(csv_path, output_path):
 
 
 if __name__ == "__main__":
-    generate_xml(CSV_FILE, OUTPUT_XML)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--relaxed", action="store_true")
+    args = parser.parse_args()
+
+    generate_xml(CSV_FILE, OUTPUT_XML, relaxed=args.relaxed)
