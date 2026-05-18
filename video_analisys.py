@@ -1,16 +1,21 @@
 import subprocess
 import csv
 import os
+import sys
 import json
+import argparse
 
 VIDEO_EXTENSIONS = (".mp4", ".mov", ".mkv", ".avi")
 FFPROBE = "ffprobe"
+METADATA_FILE_PATH = "video_analysis/metadata.csv"
+VIDEO_SOURCES_PATH = "../sources/"
 
 def run_ffprobe_json(cmd):
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+        output = subprocess.check_output(cmd)
         return json.loads(output.decode())
     except subprocess.CalledProcessError:
+        print("FFPROBE FAILED:", cmd)
         return None
 
 def get_stream_info(path):
@@ -46,41 +51,87 @@ def get_stream_info(path):
         "duration": fmt.get("duration", "N/A"),
     }
 
-def find_videos(root="."):
+def find_videos(path=VIDEO_SOURCES_PATH):
     video_files = []
-    for dirpath, _, filenames in os.walk(root):
+    for dirpath, _, filenames in os.walk(path):
         for f in filenames:
             if f.lower().endswith(VIDEO_EXTENSIONS):
                 full_path = os.path.join(dirpath, f)
-                rel_path = os.path.relpath(full_path, root)
-                video_files.append((f, rel_path))
+                rel_path = os.path.relpath(full_path, path)
+                video_files.append({"filename":f, 
+                                    "rel_path":rel_path,
+                                    "full_path": full_path})
+    if video_files == []:
+        print("PANIC: NO VIDEO FILES FOUND")
+        sys.exit(1)
     return video_files
 
+def load_already_processed_videos(csv_path=METADATA_FILE_PATH):
+    # Reads the existing metadata CSV and returns a set of video paths
+    # that have already been processed. This allows the pipeline to be
+    # safely resumed after interruption (Ctrl+C, crash, etc.) without
+    # duplicating work or rewriting previously analyzed videos.
+
+    processed = set()
+
+    if not os.path.exists(csv_path):
+        return processed
+
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+
+        for row in reader:
+            processed.add(row["path"])
+
+    return processed
+
 def main():
-    videos = find_videos(".")
+    parser = argparse.ArgumentParser()
 
-    with open("metadata.csv", "w", newline="", encoding="utf-8") as csvfile:
+    parser.add_argument(
+        "--path",
+        default=".",
+        help="Folder to scan for videos"
+    )
+
+    args = parser.parse_args()
+
+    videos = find_videos(args.path)
+
+    # deterministic sort, necessary for journaling
+    videos.sort(key=lambda v: v["rel_path"])
+
+    do_write_header = not os.path.exists(METADATA_FILE_PATH)
+
+    processed = load_already_processed_videos(METADATA_FILE_PATH)
+
+    with open(METADATA_FILE_PATH, "a", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow([
-            "filename",
-            "path",
-            "total_frames",
-            "avg_frame_rate",
-            "r_frame_rate",
-            "time_base",
-            "duration_seconds"
-        ])
+        if do_write_header:
+            writer.writerow([
+                "filename",
+                "path",
+                "total_frames",
+                "avg_frame_rate",
+                "r_frame_rate",
+                "time_base",
+                "duration_seconds"
+            ])
 
-        for filename, rel_path in videos:
-            print(f"Processing: {rel_path}")
+        for video in videos:
+            if video["rel_path"] in processed:
+                print(f"Skipping already processed: {video['rel_path']}")
+                continue
 
-            info = get_stream_info(rel_path)
+            print(f"Processing: {video['rel_path']}")
 
-            name_without_ext = os.path.splitext(filename)[0]
+            info = get_stream_info(video["full_path"])
+
+            name_without_ext = os.path.splitext(video["filename"])[0]
 
             writer.writerow([
                 name_without_ext,
-                rel_path,
+                video["rel_path"],
                 info["frames"],
                 info["avg_fps"],
                 info["r_fps"],
