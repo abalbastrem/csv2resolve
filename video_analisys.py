@@ -7,7 +7,7 @@ import argparse
 
 VIDEO_EXTENSIONS = (".mp4", ".mov", ".mkv", ".avi")
 FFPROBE = "ffprobe"
-METADATA_FILE_PATH = "video_analysis/metadata.csv"
+METADATA_FILE_PATH = "output/video_metadata.csv"
 VIDEO_SOURCES_PATH = "../sources/"
 
 def run_ffprobe_json(cmd):
