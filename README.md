@@ -7,7 +7,7 @@ v0.2
 
 v0.1
 
-script VIDEO ANALYSIS
+1. script VIDEO ANALYSIS
 Analyses videos and stores data in a file.
 - filename
 - path
@@ -19,20 +19,20 @@ Analyses videos and stores data in a file.
 
 This will be used in the following script to convert from frames to timecode.
 
-script CSV2XML
+2. script CSV2XML
 From CSV, creates timeline in XML format to be imported in Davinci Resolve. Compatible with Davinci Resolve v20.
 
-script MARKERS
+3. script MARKERS
 From CSV, imports markers to Resolve.
 
-action EDIT
+4. action EDIT
 Edit with proxies. Make sure proxies that will be replaced with multicams are appended with ´_a´.
 
-action RELINK
+5. action RELINK
 Rightclick ´operations->replace selected clips´. Works regardless of framerate. Master videofiles must end with ´_a´ if they are to be substituted by multicams later on.
 
-script PREPARE MULTICAMS
+6. script PREPARE MULTICAMS
 Takes all mediapool clips that end with ´_a´, looks for their ´_b´ counterpart in the filesystem, imports those, and creates multicam clips with both.
 
-script INSERT MULTICAMS
+7. script INSERT MULTICAMS
 Creates new video track in current timeline, for all _a clips, places corresponding multicam clips in the new video track, and for all other clips simply copies them up. The original video track is all marked in orange and should be disabled manually.
