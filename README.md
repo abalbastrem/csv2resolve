@@ -5,10 +5,10 @@ v0.2
 - Scripts should first check for any forseeable problems, error with actionable message and halt. That way, errors are not made halfway through, whether fatal or otherwise.
 - Should make sure mediapool clips and other items are located in the corresponding bins for every ingress and outgress of every script.
 
-v0.1
+v0.1 Compatible with Davinci Resolve v20.
 
 1. script VIDEO ANALYSIS
-Analyses videos and stores data in a file.
+Analyses videos and stores metadata in a file.
 - filename
 - path
 - total_frames
@@ -20,10 +20,10 @@ Analyses videos and stores data in a file.
 This will be used in the following script to convert from frames to timecode.
 
 2. script CSV2XML
-From CSV, creates timeline in XML format to be imported in Davinci Resolve. Compatible with Davinci Resolve v20.
+From edit CSV and video_metadata.csv, creates timeline in XML format to be imported in Davinci Resolve.
 
 3. script MARKERS
-From CSV, imports markers to Resolve.
+From CSV, creates markers.edl file. In order to import, right click on timeline _Mediapool Item > Timelines > Import > Timeline Markers from EDL_.
 
 4. action EDIT
 Edit with proxies. Make sure proxies that will be replaced with multicams are appended with ´_a´.

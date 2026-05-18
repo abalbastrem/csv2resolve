@@ -2,8 +2,8 @@ import csv
 import random
 
 # Fitxers
-input_csv = r"..\master3.csv"
-output_edl = "markers.edl"
+input_csv = r"..\test_multi.csv"
+output_edl = "output/markers.edl"
 
 FPS = 24  # IMPORTANT: 24 per evitar drifting a Resolve
 
