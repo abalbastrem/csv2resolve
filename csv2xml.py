@@ -24,10 +24,14 @@ def validate_clips(clips, metadata):
     for i, c in enumerate(clips):
 
         # --- GID ---
+        global_id_v = str(c["global_id"]).strip() 
+        # comma float to dot float
+        global_id_v = global_id_v.replace(",", ".")
+
         try:
-            gid = int(c["global_id"])
+            gid = round(float(global_id_v) * 100)
         except ValueError:
-            raise Exception(f"GID no numèric a index {i}: {c['global_id']}")
+            raise Exception(f"GID no numèric a index {i}: {global_id_v}")
 
         if gid in seen_gids:
             raise Exception(f"GID duplicat: {gid}")
@@ -104,6 +108,9 @@ def generate_xml(csv_path, output_path, relaxed=False):
 
     if not clips:
         raise Exception("No hi ha clips vàlids després del filtre CHECK == 1")
+    
+    if not relaxed:
+      validate_clips(clips, metadata)
 
     total_duration = clips[-1]["tl_out"]
 
