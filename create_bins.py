@@ -21,51 +21,6 @@ media_pool = project.GetMediaPool()
 SUBFOLDERS = ["mc", "mc_pending", "offline", "online"]
 ROOT_NAME = "clips"
 
-# def get_or_create_folder(parent, name):
-#     """
-#     Finds or creates a folder under the given parent.
-#     """
-#     root = parent.GetRootFolder()
-    
-#     def search(folder):
-#         for f in folder.GetSubFolders():
-#             if f.GetName() == name:
-#                 return f
-#         return None
-
-#     found = search(root)
-#     if found:
-#         return found
-
-#     return media_pool.AddSubFolder(root, name)
-
-# def ensure_structure():
-#     root = media_pool.GetRootFolder()
-
-#     # Create / get top folder "clips"
-#     clips = None
-#     for f in root.GetSubFolders():
-#         if f.GetName() == BIN_ROOT:
-#             clips = f
-#             break
-
-#     if not clips:
-#         clips = media_pool.AddSubFolder(root, BIN_ROOT)
-
-#     # Subfolders
-#     names = BIN_NAMES
-
-#     existing = {f.GetName(): f for f in clips.GetSubFolders()}
-
-#     for name in names:
-#         if name not in existing:
-#             media_pool.AddSubFolder(clips, name)
-
-# ensure_structure()
-
-# print("Bin structure created under 'clips'")
-
-
 def get_subfolders(folder):
     # Compatible amb APIs que retornen Folder objects
     try:
