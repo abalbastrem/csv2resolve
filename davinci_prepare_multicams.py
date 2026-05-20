@@ -1,5 +1,11 @@
+### For Davinci Resolve v20, 
+### copy this script into ProgramData\Blackmagic Design\DaVinci Resolve\Fusion\Scripts\Utility
+### run from Davinci Resolve itself. Workspace > scripts.
+
+# This script DOES NOT generate multicam clips. It simply find B cams in the filesystem for every A cam in the mediapool and puts them both in a bin.
+# Then multicams must be created manually by selecting both clips, rightclick 'Create new multicam clip using selected clips...' and choosing the appropiate options.
 if not resolve:
-    raise RuntimeError("PANIC: Could not connect with resolve")
+    raise RuntimeError("PANIC: Could not connect to resolve")
 else:
     print("successfully connected to resolve")
 
@@ -13,9 +19,42 @@ rootFolder = mediaPool.GetRootFolder()
 print("all resources instantiated")
 
 # --- CONFIG ---
-MC_PENDING_BIN_NAME = "mc_pending"
+MC_PENDING_BIN_NAME = "clips/mc_pending"
+INGRESS_BIN_NAMES = "clips/online", "clips/single" # ChatGPT, utilitza aquests com bins on buscar clips camA
 
 # --- Helpers ---
+
+def find_or_create_bin_path(root, path):
+    parts = path.split("/")
+    current = root
+
+    for part in parts:
+        found = None
+
+        for sub in current.GetSubFolderList():
+            if sub.GetName() == part:
+                found = sub
+                break
+
+        if not found:
+            found = mediaPool.AddSubFolder(current, part)
+
+        current = found
+
+    return current
+
+def get_clips_from_bins(root, bin_names):
+    clips = []
+
+    for bin_path in bin_names:
+        folder = find_or_create_bin_path(root, bin_path)
+        if not folder:
+            print(f"[WARN] Bin not found: {bin_path}")
+            continue
+
+        clips += get_all_clips(folder)
+
+    return clips
 
 def print_clips(clips):
     for clip in clips:
@@ -57,16 +96,10 @@ def get_clips_mc(all_clips):
         clips_mc.append(clip)
     return clips_mc
 
-def find_or_create_bin(parent, name):
-    for sub in parent.GetSubFolderList():
-        if sub.GetName() == name:
-            return sub
-    return mediaPool.AddSubFolder(parent, name)
-
 ### GET INITIAL CLIPS ###
 # --- 1.1 Get all clips ---
-all_clips = get_all_clips(rootFolder)
-print("ALL CLIPS")
+all_clips = get_clips_from_bins(rootFolder, INGRESS_BIN_NAMES)
+print("ALL CLIPS in ", INGRESS_BIN_NAMES)
 print_clips(all_clips)
 
 # --- 1.1 Get A clips ---
@@ -120,7 +153,7 @@ for clipA in clips_a:
 
 
 # --- 3. Group clips by naming pattern ---
-all_clips = get_all_clips(rootFolder)
+all_clips = get_clips_from_bins(rootFolder, INGRESS_BIN_NAMES)
 
 groups = {}
 
@@ -136,15 +169,11 @@ for clip in all_clips:
         key = base[:-2]
         groups.setdefault(key, {})["b"] = clip
 
-print(groups)
-print("grouped clips")
-
 # --- 4. Prepare multicam pending bin ---
-mc_pending_bin = find_or_create_bin(rootFolder, MC_PENDING_BIN_NAME)
+mc_pending_bin = find_or_create_bin_path(rootFolder, MC_PENDING_BIN_NAME)
 print("created multicam pending bin")
 
 # --- 5. Move A/B couples to mc_pending ---
-
 for base, cams in groups.items():
 
     if "a" not in cams or "b" not in cams:

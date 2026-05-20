@@ -4,10 +4,12 @@
 
 # DaVinci Resolve - Create Bin Structure
 # clips/
-#   - mc
-#   - mc_pending
-#   - offline
-#   - online
+#   - mc_pending: camA & camB clips pending to be manually multicammed
+#   - mc_done: camA & camB already multicammed
+#   - mc: multicam
+#   - offline: proxies
+#   - online: masters
+#   - single: clips with no proxy/master variant
 if not resolve:
     raise RuntimeError("PANIC: Could not connect to resolve")
 else:
@@ -18,7 +20,7 @@ project = pm.GetCurrentProject()
 media_pool = project.GetMediaPool()
 
 # --- CONFIG ---
-SUBFOLDERS = ["mc", "mc_pending", "offline", "online"]
+SUBFOLDERS = ["mc", "mc_pending", "offline", "online", "single"]
 ROOT_NAME = "clips"
 
 def get_subfolders(folder):
