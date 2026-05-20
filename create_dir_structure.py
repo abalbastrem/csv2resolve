@@ -4,7 +4,7 @@
 # - sources: video sources
 # -- online: proxies
 # -- offline: masters
-# -- external: vids with no proxy/master variation
+# -- single: vids with one version, no proxy/master variation
 
 import os
 
@@ -22,7 +22,7 @@ ROOT_FOLDERS = [
 SOURCE_SUBFOLDERS = [
     "online",
     "offline",
-    "external",
+    "single",
 ]
 
 
