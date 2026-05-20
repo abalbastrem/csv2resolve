@@ -2,22 +2,11 @@ import csv
 import os
 import argparse
 
-METADATA_FILE = "output/video_metadata.csv"
-CSV_FILE = "../test_multi.csv"
-OUTPUT_XML = "output/timeline.xml"
-MEDIA_PRIORITY = ["offline", "external", "online"]
+METADATA_FILE = "../output/video_metadata.csv"
+CSV_FILE = "../timeline.csv"
+OUTPUT_XML = "../output/timeline.xml"
 SOURCES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sources"))
-
-def load_metadata2():
-    metadata = {}
-    with open(METADATA_FILE, newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            metadata[row["filename"]] = {
-                "path": row["path"],
-                "duration": int(row["total_frames"])
-            }
-    return metadata
+MEDIA_PRIORITY = ["offline", "single", "online"]
 
 def load_metadata():
     metadata = {}
@@ -40,7 +29,7 @@ def load_metadata():
             elif "online" in lower_path:
                 variant = "online"
             else:
-                variant = "external"
+                variant = "single"
 
             if asset_id not in metadata:
                 metadata[asset_id] = {
@@ -48,7 +37,7 @@ def load_metadata():
                     "media": {
                         "offline": {"path": "...", "duration": duration},
                         "online": {"path": "...", "duration": duration},
-                        "external": {"path": "...", "duration": duration},
+                        "single": {"path": "...", "duration": duration},
                     }
                 }
 
@@ -57,10 +46,14 @@ def load_metadata():
 
     return metadata
 
-def resolve_media(asset):
+def resolve_media(asset, online=False):
+    if online:
+        priority = ["online", "single", "offline"]
+    else:
+        priority = MEDIA_PRIORITY
     media = asset["media"]
 
-    for t in MEDIA_PRIORITY:
+    for t in priority:
         if t in media:
             return {
                 "type": t,
@@ -125,7 +118,7 @@ def validate_clips(clips, metadata):
                 f"Overlap TL entre GID {clips[i-1]['global_id']} i {clips[i]['global_id']}"
             )
 
-def generate_xml(csv_path, output_path, relaxed=False):
+def generate_xml(csv_path, output_path, online=False, relaxed=False):
     base_dir = os.path.dirname(os.path.abspath(csv_path))
     
     metadata = load_metadata()
@@ -146,7 +139,7 @@ def generate_xml(csv_path, output_path, relaxed=False):
                 raise Exception(f"Vídeo no trobat a metadata: {video_name}")
 
             asset = metadata[video_name]
-            variant = resolve_media(asset)
+            variant = resolve_media(asset, online)
 
             clips.append({
                 "global_id": row["GID"],
@@ -154,11 +147,11 @@ def generate_xml(csv_path, output_path, relaxed=False):
                 "video_name": video_name,
                 "video_path": variant["path"],
                 "video_duration": variant["duration"],
-                "src_in": int(row["SRC_IN"]),
-                "src_out": int(row["SRC_OUT"]),
-                "dur": int(row["FR_DUR"]),
-                "tl_in": int(row["TL_IN"]),
-                "tl_out": int(row["TL_OUT"]),
+                "src_in": int(row["fSRC_IN"]),
+                "src_out": int(row["fSRC_OUT"]),
+                "dur": int(row["fFR_DUR"]),
+                "tl_in": int(row["fTL_IN"]),
+                "tl_out": int(row["fTL_OUT"]),
             })
 
     if not clips:
@@ -332,9 +325,19 @@ def generate_xml(csv_path, output_path, relaxed=False):
 
 
 if __name__ == "__main__":
+    import sys
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--relaxed", action="store_true")
     parser.add_argument("--csv", default=CSV_FILE)
+    parser.add_argument("--online", action="store_true")
     args = parser.parse_args()
 
-    generate_xml(CSV_FILE, OUTPUT_XML, relaxed=args.relaxed)
+    csv_file = args.csv
+
+    if not os.path.isfile(csv_file):
+        print(f"PANIC: CSV FILE NOT FOUND: {csv_file}")
+        sys.exit(1)
+
+
+    generate_xml(csv_file, OUTPUT_XML, online=args.online, relaxed=args.relaxed)
