@@ -15,29 +15,31 @@ CSV_PATH = r"C:\Users\bulbastre\Videos\proves\timeline.csv"
 COLUMN_TAGS = "TAGS"
 COLUMN_TOPIC = "TOPIC"
 COLUMN_LACKS_SOURCE = "LACKS SOURCE?"
-COLUMN_SOURCES = "FUENTES"
+COLUMN_SOURCES = "SOURCES"
 COLUMN_COMMENTS = "COMMENTS"
 
 # RESOLVE
 TEMPLATE_FOLDER = "overlays"
-TEMPLATE_TAG = "TAG+"
-TEMPLATE_TOPIC = "TOPIC+"
-TEMPLATE_SRC_LACKING = "SRC_lacking"
-TEMPLATE_SOURCES = "sources"
+TEMPLATE_TAG = "TAG"
+TEMPLATE_TOPIC = "TOPIC"
+TEMPLATE_SRC_LACKING = "SRC!"
+TEMPLATE_SRC_LIST = "SRC_list"
 TEMPLATE_COMMENTS = "comments"
 
 TRACK_VIDEO = 1
 TRACK_TAG = 2
 TRACK_SRC_LACKING = 3
-TRACK_SOURCES = 4
+TRACK_SRC_LIST = 4
 TRACK_COMMENTS = 5
+TRACK_TOPIC = 6
 
 TRACK_NAMES = {
     TRACK_VIDEO: "VIDEO",
     TRACK_TAG: "TAG",
     TRACK_SRC_LACKING: "SRC_LACKING",
-    TRACK_SOURCES: "SOURCES",
+    TRACK_SRC_LIST: "SOURCES",
     TRACK_COMMENTS: "COMMENTS",
+    TRACK_TOPIC: "TOPIC"
 }
 
 
@@ -118,11 +120,35 @@ def set_textplus_text(timeline_item, text):
         print("[ERROR] No Fusion comp found (probably not Text+)")
         return False
 
+    # ==========================================
+    # Normalize text
+    # ==========================================
+
+    if text is None:
+        text = ""
+
+    text = str(text).strip()
+
+    # Split ';' into multiple lines
+    # Example:
+    # "TAG1;TAG2;TAG3"
+    # ->
+    # "TAG1\nTAG2\nTAG3"
+
+    text = "\n".join(
+        part.strip()
+        for part in text.split(";")
+        if part.strip()
+    )
+
     tools = fusion.GetToolList()
 
     for _, tool in tools.items():
 
-        # Text+ node IDs can vary slightly
+        # --------------------------------------
+        # Direct StyledText attribute
+        # --------------------------------------
+
         if hasattr(tool, "StyledText"):
             try:
                 tool.StyledText = text
@@ -130,9 +156,16 @@ def set_textplus_text(timeline_item, text):
             except:
                 pass
 
-        if tool.GetInput("StyledText") is not None:
-            tool.SetInput("StyledText", text)
-            return True
+        # --------------------------------------
+        # StyledText input socket
+        # --------------------------------------
+
+        try:
+            if tool.GetInput("StyledText") is not None:
+                tool.SetInput("StyledText", text)
+                return True
+        except:
+            pass
 
     print("[ERROR] No Text+ node found")
     return False
@@ -222,12 +255,6 @@ def build_overlays(csv_rows):
             set_textplus_text(item, tag_value)
             item.SetName(f"TAG_{tag_value}")
 
-            print(item)
-            print(item.GetName())
-            print(item.GetFusionCompByIndex(0))
-            print(item.GetFusionCompCount())
-            print(item.GetFusionCompNameList())
-
 
         # =====================================
         # SRC_LACKING → V3
@@ -269,7 +296,7 @@ def build_overlays(csv_rows):
 
             template = find_template(
                 media_pool,
-                TEMPLATE_SOURCES
+                TEMPLATE_SRC_LIST
             )
 
             if not template:
@@ -279,7 +306,7 @@ def build_overlays(csv_rows):
             item = append_overlay(
                 media_pool,
                 template,
-                TRACK_SOURCES,
+                TRACK_SRC_LIST,
                 timeline_start,
                 start,
                 duration
@@ -287,6 +314,7 @@ def build_overlays(csv_rows):
 
             if item:
                 item.SetName(f"SOURCES_{sources_value}")
+                set_textplus_text(item, sources_value)
 
 
         # =====================================
@@ -317,6 +345,7 @@ def build_overlays(csv_rows):
 
             if item:
                 item.SetName(f"COMMENTS_{comments_value}")
+                set_textplus_text(item, comments_value)
 
 
         # =====================================
