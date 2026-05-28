@@ -42,6 +42,11 @@ TRACK_NAMES = {
     TRACK_TOPIC: "TOPIC"
 }
 
+project = resolve.GetProjectManager().GetCurrentProject()
+media_pool = project.GetMediaPool()
+timeline = project.GetCurrentTimeline()
+timeline_start = timeline.GetStartFrame()
+
 
 # =========================
 # CSV LOADING
@@ -62,7 +67,7 @@ def read_csv(path):
 # These assume Resolve API context is available
 
 
-def find_template(media_pool, name):
+def find_template(name):
     """
     Finds a template clip inside Power Bin folder.
     """
@@ -170,20 +175,25 @@ def set_textplus_text(timeline_item, text):
     print("[ERROR] No Text+ node found")
     return False
 
-def append_overlay(media_pool, template, track_index, timeline_start, record_frame, duration):
+def append_overlay(template, track_index, tl_in, tl_out):
     """
     Creates a timeline overlay instance from a MediaPool template.
     """
+
+    duration = tl_out - tl_in
+
+    if duration <= 0:
+        return
 
     clip_info = {
         "mediaPoolItem": template,
 
         # source range inside template
         "startFrame": 0,
-        "endFrame": duration,
+        "endFrame": duration, # will logically equal src_out
 
         # destination in timeline
-        "recordFrame": timeline_start + record_frame,
+        "recordFrame": timeline_start + tl_in,
         "trackIndex": track_index,
     }
 
@@ -196,12 +206,6 @@ def append_overlay(media_pool, template, track_index, timeline_start, record_fra
     return result[0]
 
 def build_overlays(csv_rows):
-    project = resolve.GetProjectManager().GetCurrentProject()
-    media_pool = project.GetMediaPool()
-    timeline = project.GetCurrentTimeline()
-    timeline_start = timeline.GetStartFrame()
-
-    ensure_video_tracks(timeline, TRACK_NAMES)
 
     for row in csv_rows:
         if bool(row.get("CHECK")) != True:
@@ -212,13 +216,13 @@ def build_overlays(csv_rows):
         # =====================================
 
         try:
-            start = int(row.get("fTL_IN", 0))
-            end = int(row.get("fTL_OUT", 0))
+            tl_in = int(row.get("fTL_IN", 0))
+            tl_out = int(row.get("fTL_OUT", 0))
         except Exception:
             print("[WARNING] Invalid frame data, skipping row")
             continue
 
-        duration = end - start
+        duration = tl_out - tl_in
 
         if duration <= 0:
             print("[WARNING] Invalid duration, skipping row")
@@ -233,19 +237,17 @@ def build_overlays(csv_rows):
 
         if tag_value:
 
-            template = find_template(media_pool, TEMPLATE_TAG)
+            template = find_template(TEMPLATE_TAG)
 
             if not template:
                 print("PANIC: no {TEMPLATE_TAG} template")
                 return
 
             item = append_overlay(
-                media_pool,
                 template,
                 TRACK_TAG,
-                timeline_start,
-                start,
-                duration
+                tl_in,
+                tl_out
             )
 
             if not item:
@@ -264,22 +266,17 @@ def build_overlays(csv_rows):
 
         if lacks_source == "true":
 
-            template = find_template(
-                media_pool,
-                TEMPLATE_SRC_LACKING
-            )
+            template = find_template(TEMPLATE_SRC_LACKING)
 
             if not template:
                 print("PANIC: no SRC_LACKING template")
                 return
 
             item = append_overlay(
-                media_pool,
                 template,
                 TRACK_SRC_LACKING,
-                timeline_start,
-                start,
-                duration
+                tl_in,
+                tl_out
             )
 
             if item:
@@ -294,22 +291,17 @@ def build_overlays(csv_rows):
 
         if sources_value:
 
-            template = find_template(
-                media_pool,
-                TEMPLATE_SRC_LIST
-            )
+            template = find_template(TEMPLATE_SRC_LIST)
 
             if not template:
                 print("PANIC: no SOURCES template")
                 return
 
             item = append_overlay(
-                media_pool,
                 template,
                 TRACK_SRC_LIST,
-                timeline_start,
-                start,
-                duration
+                tl_in,
+                tl_out
             )
 
             if item:
@@ -325,22 +317,17 @@ def build_overlays(csv_rows):
 
         if comments_value:
 
-            template = find_template(
-                media_pool,
-                TEMPLATE_COMMENTS
-            )
+            template = find_template(TEMPLATE_COMMENTS)
 
             if not template:
                 print("PANIC: no COMMENTS template")
                 return
 
             item = append_overlay(
-                media_pool,
                 template,
                 TRACK_COMMENTS,
-                timeline_start,
-                start,
-                duration
+                tl_in,
+                tl_out
             )
 
             if item:
@@ -348,16 +335,113 @@ def build_overlays(csv_rows):
                 set_textplus_text(item, comments_value)
 
 
-        # =====================================
-        # TOPIC
-        # =====================================
-        # intentionally skipped for now
+def build_topics(csv_rows):
 
+    template = find_template(TEMPLATE_TOPIC)
+
+    if not template:
+        print("PANIC: no TOPIC template")
+        return
+
+    current_topic = None
+    current_start = None
+    current_end = None
+
+    def flush_topic(topic, tl_in, tl_out):
+
+        if not topic:
+            return
+
+        item = append_overlay(
+            template,
+            TRACK_TOPIC,
+            tl_in,
+            tl_out
+        )
+
+        if item:
+            set_textplus_text(item, topic)
+            item.SetName(f"TOPIC_{topic}")
+
+    for row in csv_rows:
+        topic = row.get("TOPIC", "").strip()
+
+        try:
+            tl_in = int(row.get("fTL_IN", 0))
+            tl_out = int(row.get("fTL_OUT", 0))
+        except:
+            continue
+
+        # --------------------------------------
+        # Empty topic
+        # --------------------------------------
+
+        if not topic:
+
+            flush_topic(
+                current_topic,
+                current_start,
+                current_end
+            )
+
+            current_topic = None
+            current_start = None
+            current_end = None
+
+            continue
+
+        # --------------------------------------
+        # First topic
+        # --------------------------------------
+
+        if current_topic is None:
+            current_topic = topic
+            current_start = tl_in
+            current_end = tl_out
+
+            continue
+
+        # --------------------------------------
+        # Same topic → extend range
+        # --------------------------------------
+
+        if topic == current_topic:
+            current_end = tl_out
+            continue
+
+        # --------------------------------------
+        # Topic changed
+        # --------------------------------------
+
+        flush_topic(
+            current_topic,
+            current_start,
+            current_end
+        )
+
+        current_topic = topic
+        current_start = tl_in
+        current_end = tl_out
+
+    # ==========================================
+    # Flush final topic
+    # ==========================================
+
+    flush_topic(
+        current_topic,
+        current_start,
+        current_end
+    )
 
 def main():
+    ensure_video_tracks(timeline, TRACK_NAMES)
     rows = read_csv(CSV_PATH)
+
     print(f"[INFO] Loaded rows: {len(rows)}")
+
     build_overlays(rows)
+    build_topics(rows)
+
     print("[DONE]")
 
 

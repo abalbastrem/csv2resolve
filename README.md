@@ -32,8 +32,14 @@ From edit CSV and video_metadata.csv, creates timeline in XML format to be impor
 5. action **manually move imported clips to bins**
 Move recently imported clips in media pool to the corresponding bins, usually _offline_ and _single_.
 
-6. script **markers**
-From CSV, creates markers.edl file. In order to import, right click on timeline _Mediapool Item > Timelines > Import > Timeline Markers from EDL_.
+6. script **davinci_overlays**
+From CSV, creates overlaying clips in the timeline. Make sure to copy _overlays_ powerbin to the project MediaPool.
+Types of overlaying clips:
+- TOPIC
+- TAGS
+- SRC!: if source is needed but is missing. It is simply boolean.
+- SRC_list: list of sources.
+- comments
 
 7. action **edit**
 Edit with proxies. Make sure proxies that will be replaced with multicams are appended with ´_a´.
