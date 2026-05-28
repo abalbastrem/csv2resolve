@@ -62,6 +62,8 @@ Check for correct framerate, and these options should be ideal for this producti
 11. script **davinci insert multicams**
 Creates new video track in current timeline, for all _a clips, places corresponding multicam clips in the new video track, and for all other clips simply copies them up. The original video track is all marked in orange and should be disabled manually.
 
+12. Edit multicams
+
 ### VERSION HISTORY
 v0.3
 - Consider making a subtitles script
@@ -74,5 +76,8 @@ v0.1
 - First semiworking version
 
 ### TODO
-- Test with singles from the very beginning
-- Should I make markers clips with transparency in order to help with the editing?
+- Check all templates in overlays.
+- Make script to check CSV at the start.
+- Test whole workflow with singles from the very beginning.
+- Link A1 and V1, early on and perhaps again after the multicam script.
+- rework all the workflow steps with substeps
