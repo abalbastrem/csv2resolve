@@ -19,12 +19,21 @@ COLUMN_SOURCES = "SOURCES"
 COLUMN_COMMENTS = "COMMENTS"
 
 # RESOLVE
-TEMPLATE_FOLDER = "overlays"
-TEMPLATE_TAG = "TAG"
-TEMPLATE_TOPIC = "TOPIC"
-TEMPLATE_SRC_LACKING = "SRC!"
-TEMPLATE_SRC_LIST = "SRC_list"
-TEMPLATE_COMMENTS = "comments"
+OVERLAYS_BIN = "overlays"
+
+OVERLAY_TAG = "TAG"
+OVERLAY_TOPIC = "TOPIC"
+OVERLAY_SRC_LACKING = "SRC!"
+OVERLAY_SRC_LIST = "SRC_list"
+OVERLAY_COMMENTS = "comments"
+
+OVERLAY_TEMPLATES = [
+    OVERLAY_TAG,
+    OVERLAY_TOPIC,
+    OVERLAY_SRC_LACKING,
+    OVERLAY_SRC_LIST,
+    OVERLAY_COMMENTS,
+]
 
 TRACK_VIDEO = 1
 TRACK_TAG = 2
@@ -66,22 +75,32 @@ def read_csv(path):
 # =========================
 # These assume Resolve API context is available
 
+def ensure_overlays():
+    missing = []
 
-def find_template(name):
-    """
-    Finds a template clip inside Power Bin folder.
-    """
-    root = media_pool.GetRootFolder()
-    folders = root.GetSubFolderList()
+    for template_name in OVERLAY_TEMPLATES:
+        if not find_template(template_name):
+            missing.append(template_name)
 
-    for f in folders:
-        if f.GetName() == TEMPLATE_FOLDER:
-            clips = f.GetClipList()
-            for c in clips:
-                if c.GetName() == name:
-                    return c
-    return None
+    if missing:
 
+        print("")
+        print("========================================")
+        print("ERROR: Missing overlay templates")
+        print("========================================")
+
+        for name in missing:
+            print(f" - {name}")
+
+        print("")
+        print(f"Perhaps '{OVERLAYS_BIN}' bin is missing?")
+        print("")
+
+        return False
+
+    print("[OK] All overlay templates found")
+
+    return True
 
 def ensure_video_tracks(timeline, track_names):
     required_count = max(track_names.keys())
@@ -94,6 +113,21 @@ def ensure_video_tracks(timeline, track_names):
 
     for index, name in track_names.items():
         timeline.SetTrackName("video", index, name)
+
+def find_template(name):
+    """
+    Finds a template clip inside Power Bin folder.
+    """
+    root = media_pool.GetRootFolder()
+    folders = root.GetSubFolderList()
+
+    for f in folders:
+        if f.GetName() == OVERLAYS_BIN:
+            clips = f.GetClipList()
+            for c in clips:
+                if c.GetName() == name:
+                    return c
+    return None
 
 
 def add_clip(timeline, clip, track, start_frame, end_frame):
@@ -237,7 +271,7 @@ def build_overlays(csv_rows):
 
         if tag_value:
 
-            template = find_template(TEMPLATE_TAG)
+            template = find_template(OVERLAY_TAG)
 
             if not template:
                 print("PANIC: no {TEMPLATE_TAG} template")
@@ -266,7 +300,7 @@ def build_overlays(csv_rows):
 
         if lacks_source == "true":
 
-            template = find_template(TEMPLATE_SRC_LACKING)
+            template = find_template(OVERLAY_SRC_LACKING)
 
             if not template:
                 print("PANIC: no SRC_LACKING template")
@@ -291,7 +325,7 @@ def build_overlays(csv_rows):
 
         if sources_value:
 
-            template = find_template(TEMPLATE_SRC_LIST)
+            template = find_template(OVERLAY_SRC_LIST)
 
             if not template:
                 print("PANIC: no SOURCES template")
@@ -317,7 +351,7 @@ def build_overlays(csv_rows):
 
         if comments_value:
 
-            template = find_template(TEMPLATE_COMMENTS)
+            template = find_template(OVERLAY_COMMENTS)
 
             if not template:
                 print("PANIC: no COMMENTS template")
@@ -337,7 +371,7 @@ def build_overlays(csv_rows):
 
 def build_topics(csv_rows):
 
-    template = find_template(TEMPLATE_TOPIC)
+    template = find_template(OVERLAY_TOPIC)
 
     if not template:
         print("PANIC: no TOPIC template")
@@ -434,6 +468,7 @@ def build_topics(csv_rows):
     )
 
 def main():
+    ensure_overlays()
     ensure_video_tracks(timeline, TRACK_NAMES)
     rows = read_csv(CSV_PATH)
 
