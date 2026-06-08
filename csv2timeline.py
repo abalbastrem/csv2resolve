@@ -2,8 +2,8 @@ import csv
 import os
 import argparse
 
-METADATA_FILE = "../output/video_metadata.csv"
 CSV_FILE = "../timeline.csv"
+METADATA_FILE = "../output/video_metadata.csv"
 OUTPUT_XML = "../output/timeline.xml"
 SOURCES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sources"))
 MEDIA_PRIORITY = ["offline", "single", "online"]
@@ -34,11 +34,7 @@ def load_metadata():
             if asset_id not in metadata:
                 metadata[asset_id] = {
                     "duration": duration,
-                    "media": {
-                        "offline": {"path": "...", "duration": duration},
-                        "online": {"path": "...", "duration": duration},
-                        "single": {"path": "...", "duration": duration},
-                    }
+                    "media": {}
                 }
 
             # guarda variant
@@ -149,7 +145,7 @@ def generate_xml(csv_path, output_path, online=False, relaxed=False):
                 "video_duration": variant["duration"],
                 "src_in": int(row["fSRC_IN"]),
                 "src_out": int(row["fSRC_OUT"]),
-                "dur": int(row["fFR_DUR"]),
+                "dur": int(row["fDUR"]),
                 "tl_in": int(row["fTL_IN"]),
                 "tl_out": int(row["fTL_OUT"]),
             })
