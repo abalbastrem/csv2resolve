@@ -166,7 +166,8 @@ def main():
                 info["duration"]
             ])
 
-    print(f"Done. {len(videos)} videos processed → metadata.csv")
+    print(f"Done. {len(videos)} videos processed → video_metadata.csv")
 
 if __name__ == "__main__":
     main()
+    print("SUCCESS")

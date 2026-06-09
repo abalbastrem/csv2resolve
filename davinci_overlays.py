@@ -82,7 +82,7 @@ def read_csv(path):
 # =========================
 # These assume Resolve API context is available
 
-def ensure_overlays():
+def are_there_overlays():
     missing = []
 
     for template_name in OVERLAY_TEMPLATES:
@@ -101,7 +101,6 @@ def ensure_overlays():
 
         print("")
         print(f"Perhaps '{OVERLAYS_BIN}' bin is missing?")
-        print("")
 
         return False
 
@@ -475,7 +474,9 @@ def build_topics(csv_rows):
     )
 
 def main():
-    ensure_overlays()
+    if not are_there_overlays():
+        print("FAIL")
+        sys.exit(1)
     ensure_video_tracks(timeline, TRACK_NAMES)
     rows = read_csv(CSV_PATH)
 

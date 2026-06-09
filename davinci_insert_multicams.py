@@ -1,19 +1,14 @@
-# master2multicam_timeline.py
-#
-# Crea una nova timeline basada en la timeline actual.
-# Substitueix clips acabats en "_a" pels seus equivalents "_mc"
-# trobats al bin "mc".
+# En la pista de video MULTICAM, posa clips _mc equivalents als _a de la pista de vídeo original.
+# La resta de clips es copia a aquesta pista MULTICAM tal qual.
 #
 # Exemple:
-#   alfredo_a  -> alfredo_mc
-#
-# Clips sense multicam:
-#   es mantenen tal qual.
+#   V1 alfredo_a  -> V2 (MULTICAM) alfredo_mc
+#   V1 juicio2007 -> V2 (MULTICAM) juicio2007
 #
 # IMPORTANT:
 # - Executar des de Resolve
 # - Timeline original ha d'estar oberta/seleccionada
-# - Els multicams han de ser al bin "mc"
+# - Tots els multicams han de ser al bin "mc". L'script fallarà si no els troba primer.
 
 import sys
 
@@ -54,6 +49,62 @@ NEW_TIMELINE_NAME = timeline.GetName() + "_mc"
 # HELPERS
 # ------------------------------------------------------------
 
+def validate_all_multicams_exist(timeline, multicam_map):
+    """
+    Verifica que tots els clips *_a presents a la timeline
+    tenen el seu multicam corresponent al multicam_map.
+
+    Si en falta algun, imprimeix la llista completa i falla.
+    """
+
+    import os
+
+    missing_multicams = set()
+
+    video_track_count = timeline.GetTrackCount("video")
+
+    for track_index in range(1, video_track_count + 1):
+
+        items = timeline.GetItemListInTrack("video", track_index)
+
+        if not items:
+            continue
+
+        for item in items:
+
+            media_pool_item = item.GetMediaPoolItem()
+            if not media_pool_item:
+                continue
+
+            source_name = media_pool_item.GetName()
+            clip_name, ext = os.path.splitext(source_name)
+            if not clip_name.endswith(CAM_A_SUFFIX):
+                continue
+
+            base_name = clip_name[:-len(CAM_A_SUFFIX)]
+            if base_name not in multicam_map:
+                missing_multicams.add(base_name)
+
+    if missing_multicams:
+
+        print("")
+        print("################################################")
+        print("ERROR: Missing multicam clips")
+        print("")
+
+        for base_name in sorted(missing_multicams):
+            print(f"  {base_name}{MC_SUFFIX}")
+
+        print("")
+        print("################################################")
+
+        print(f"Missing {len(missing_multicams)} multicam clips")
+        print("")
+        print("FAIL")
+        sys.exit(1)
+
+    print("[OK] All required multicams found")
+
 def find_bin_by_path(root, path):
     """
     Find a Media Pool bin recursively using a slash-separated path.
@@ -76,22 +127,13 @@ def find_bin_by_path(root, path):
     return current
 
 
-def get_all_clips(folder):
-    clips = folder.GetClipList()
+def get_all_clips(bin):
+    clips = bin.GetClipList()
 
-    for sub in folder.GetSubFolderList():
+    for sub in bin.GetSubFolderList():
         clips += get_all_clips(sub)
 
     return clips
-
-### TEST
-# mc_bin = find_bin_by_path(rootFolder, BIN_CLIPS_MC)
-# clips = mc_bin.GetClipList()
-# print("DIR CLIP")
-# print(dir(clips[0]))
-# print("GET PROPERTY")
-# print(dir(clips[0].GetProperty()))
-# sys.exit(0)
 
 
 # ------------------------------------------------------------
@@ -136,6 +178,8 @@ for clip in mc_clips:
 
 print("Total multicams:", len(multicam_map))
 
+validate_all_multicams_exist(timeline, multicam_map)
+
 
 # ------------------------------------------------------------
 # LAY MULTICAM TO TIMELINE
@@ -144,7 +188,6 @@ print("Total multicams:", len(multicam_map))
 import os
 
 video_track_count = timeline.GetTrackCount("video")
-# timeline.AddTrack("video")
 
 for track_index in range(1, video_track_count + 1):
 
@@ -170,12 +213,9 @@ for track_index in range(1, video_track_count + 1):
 
         if clip_name.endswith(CAM_A_SUFFIX):
             base_name = clip_name[:-len(CAM_A_SUFFIX)]
-            if base_name in multicam_map:
-                source_clip = multicam_map[base_name]
-                print(f"[REPLACE] {source_name} -> {source_clip.GetName()}")
-                item.SetClipColor("Orange")
-            else:
-                print(f"[KEEP] No multicam for: {source_name}")
+            source_clip = multicam_map[base_name]
+            print(f"[REPLACE] {source_name} -> {source_clip.GetName()}")
+            item.SetClipColor("Orange")
 
         # ----------------------------------------------------
         # TIMECODE DATA

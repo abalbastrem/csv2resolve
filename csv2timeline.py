@@ -337,3 +337,4 @@ if __name__ == "__main__":
 
 
     generate_xml(csv_file, OUTPUT_XML, online=args.online, relaxed=args.relaxed)
+    print("SUCCESS")

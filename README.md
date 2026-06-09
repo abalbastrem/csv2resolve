@@ -28,13 +28,14 @@ Analyses videos and stores the following metadata fields in a file:
 
 This will be used in the following script to convert from frames to timecode.
 
-3. script **csv2timeline**
+3. Timeline
+3.1. script **csv2timeline**
 From edit CSV and video_metadata.csv, creates timeline in XML format to be imported in Davinci Resolve.
-
-4. action **manually move imported clips to bins**
-Move recently imported clips in media pool to the corresponding bins, usually _offline_ and _single_. If not there, move timeline to _Master_.
-
-5. script **davinci_overlays**
+3.2. action **import xml timeline**
+_File > Import > Timeline_
+3.3. action **manually move imported clips to bins**
+Move recently imported clips in media pool to the corresponding bins, usually _offline_ and _single_. Move timeline to _Master_.
+3.4. script **davinci_overlays**
 From CSV, creates overlaying clips in the timeline. Make sure to copy _overlays_ powerbin to the project MediaPool.
 Types of overlaying clips:
 - TOPIC

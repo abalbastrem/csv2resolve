@@ -99,3 +99,4 @@ if not os.path.isfile(CSV_FILE):
 
 validate_csv_columns(CSV_FILE)
 validate_chk_error(CSV_FILE)
+print("SUCCESS")

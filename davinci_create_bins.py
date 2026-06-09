@@ -61,3 +61,4 @@ def ensure_structure():
 
 
 ensure_structure()
+print("SUCCESS")

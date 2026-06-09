@@ -9,7 +9,8 @@ if not resolve:
 else:
     print("successfully connected to resolve")
 
-import re
+import os
+import sys
 
 pm = resolve.GetProjectManager()
 project = pm.GetCurrentProject()
@@ -19,8 +20,9 @@ rootFolder = mediaPool.GetRootFolder()
 print("all resources instantiated")
 
 # --- CONFIG ---
+OFFLINE_BIN_NAME = "clips/offline"
 MC_PENDING_BIN_NAME = "clips/mc_pending"
-INGRESS_BIN_NAMES = "clips/online", "clips/single" # ChatGPT, utilitza aquests com bins on buscar clips camA
+INGRESS_BIN_NAMES = "clips/online", "clips/single"
 
 # --- Helpers ---
 
@@ -97,6 +99,21 @@ def get_clips_mc(all_clips):
     return clips_mc
 
 ### GET INITIAL CLIPS ###
+# --- 0. Ensure there are no clips in offline bin ---
+offline_clips = get_clips_from_bins(rootFolder, [OFFLINE_BIN_NAME])
+
+if len(offline_clips) > 0:
+    print("")
+    print("################################################")
+    print("ERROR: Offline bin is not empty.")
+    print("Remove all clips from clips/offline before running this script.")
+    print("Found:")
+    print_clips(offline_clips)
+    print("################################################")
+    print("")
+    print("FAIL")
+    sys.exit(1)
+
 # --- 1.1 Get all clips ---
 all_clips = get_clips_from_bins(rootFolder, INGRESS_BIN_NAMES)
 print("ALL CLIPS in ", INGRESS_BIN_NAMES)
@@ -108,8 +125,6 @@ print("A CLIPS")
 print_clips(clips_a)
 
 # --- 2.1 Import all B clips from filesystem ---
-
-import os
 
 def find_clipB_path(clipA):
     # Path complet del fitxer A
@@ -186,3 +201,5 @@ for base, cams in groups.items():
     print(f"[MOVE] {base}")
 
     mediaPool.MoveClips([clipA, clipB], mc_pending_bin)
+
+print("SUCCESS")
