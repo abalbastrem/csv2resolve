@@ -8,10 +8,15 @@ You will need:
 Other versions may work too, but are not ensured.
 
 ### HOW TO USE
-1. script **create folder structure**
+1. Prepping
+1.1. script **create_dir_structure**
 Creates folder structure in filesystem. Skips folders already created.
+1.2. script **check_csv**
+Checks integrity of csv file.
+1.3. script **davinci_create_bins**
+Creates all bins that will be used for the following clips and, generally speaking, to keep everything tidy.
 
-2. script **video analysis**
+2. script **video_analysis**
 Analyses videos and stores the following metadata fields in a file:
 - filename
 - path
@@ -23,16 +28,13 @@ Analyses videos and stores the following metadata fields in a file:
 
 This will be used in the following script to convert from frames to timecode.
 
-3. script **davinci create bins**
-Creates all bins that will be used for the following clips and, generally speaking, to keep everything tidy and in order.
-
-4. script **csv2timeline**
+3. script **csv2timeline**
 From edit CSV and video_metadata.csv, creates timeline in XML format to be imported in Davinci Resolve.
 
-5. action **manually move imported clips to bins**
-Move recently imported clips in media pool to the corresponding bins, usually _offline_ and _single_.
+4. action **manually move imported clips to bins**
+Move recently imported clips in media pool to the corresponding bins, usually _offline_ and _single_. If not there, move timeline to _Master_.
 
-6. script **davinci_overlays**
+5. script **davinci_overlays**
 From CSV, creates overlaying clips in the timeline. Make sure to copy _overlays_ powerbin to the project MediaPool.
 Types of overlaying clips:
 - TOPIC
@@ -41,28 +43,29 @@ Types of overlaying clips:
 - SRC_list: list of sources.
 - comments
 
-7. action **edit**
+6. action **edit**
 Edit with proxies. Make sure proxies that will be replaced with multicams are appended with ´_a´.
 
-8. action **conform**
-Conforms proxies to masters. In the mediapool, select all clips to be conformed in _offline_ bin, rightclick _clip operations > replace selected folder_ and change to online folder. Works regardless of framerate. Master videofiles must end with ´_a´_ if they are to be substituted by multicams later on. When done, move clips from _offline_ to _online_ bin.
-Note: Clip metadata won't be updated in Resolve, so it's hard to tell which mediapool clips are proxy and which are master, so make folders.
-Troubleshooting: proxies and masters must have same aspect ratio and pixel type. If not, a wrong aspect ratio will come up. A way to fix it is to simply rightclick _clip operations > replace selected clip_ on the individual troublesome clip.
+7. action **conform**
+Conforms proxies to masters. For difficult clips, such as the ones that change aspect ratio or framerrate, this must be done manually, clip by clip. In the mediapool, select all clips to be conformed in _offline_ bin, rightclick _clip operations > replace selected clip_ and change to online folder.  Works regardless of framerate and metadata gets updated correctly. Master videofiles must end with ´_a´_ if they are to be substituted by multicams later on. When done, move clips from _offline_ to _online_ bin.
+For all clips that are not troublesome, perhaps they can be conformed all at once with _clip operations > change source folder_, although metadata won't update.
 
-9. script **davinci prepare multicams**
+8. Multicams
+8.1. script **davinci prepare multicams**
 Takes all mediapool clips in _online_ and _single_ bin that end with ´\_a´, looks for their ´\_b´ counterpart in the filesystem, imports those, and moves them both to _mc\_pending_.
 This script DOES NOT generate multicam clips.
-
-10. action **manually make multicams**
+8.2. action **manually make multicams**
 No API actions to make this into a script at the moment. Manually select both clips in _mc\_pending_, rightclick _'Create new multicam clip using selected clips...'_ and choose the appropiate options. 
 Check for correct framerate, and these options should be ideal for this production:
 - Angle Sync: Timecode
 - Multicam Audio: Source Audio Channels
+- Name must end with '\mc'.
+Manually move all the multicam clips to bin _mc_ and all used clips to _mc\_done_.
+8.3. script **davinci insert multicams**
+Creates new video track in current timeline, for all _a clips, places corresponding multicam clips in the new video track, and for all other clips simply copies them up. The original video track is all marked in orange and should be disabled/deleted manually.
+8.4. action **edit multicams**
 
-11. script **davinci insert multicams**
-Creates new video track in current timeline, for all _a clips, places corresponding multicam clips in the new video track, and for all other clips simply copies them up. The original video track is all marked in orange and should be disabled manually.
-
-12. Edit multicams
+9. action **Export**
 
 ### VERSION HISTORY
 v0.3
@@ -76,8 +79,5 @@ v0.1
 - First semiworking version
 
 ### TODO
-- Check all templates in overlays.
-- Make script to check CSV at the start.
 - Test whole workflow with singles from the very beginning.
 - Link A1 and V1, early on and perhaps again after the multicam script.
-- rework all the workflow steps with substeps
