@@ -144,7 +144,7 @@ print("Total multicams:", len(multicam_map))
 import os
 
 video_track_count = timeline.GetTrackCount("video")
-timeline.AddTrack("video")
+# timeline.AddTrack("video")
 
 for track_index in range(1, video_track_count + 1):
 
@@ -209,15 +209,6 @@ for track_index in range(1, video_track_count + 1):
             "trackIndex": 2,
             "mediaType": 1
         }
-
-        # audio_info = {
-        #     "mediaPoolItem": source_clip,
-        #     "startFrame": start_frame,
-        #     "endFrame": end_frame,
-        #     "recordFrame": record_frame,
-        #     "trackIndex": 2,
-        #     "mediaType": 2
-        # }
 
         result = mediaPool.AppendToTimeline([clip_info])
 

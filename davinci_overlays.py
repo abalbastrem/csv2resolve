@@ -2,6 +2,11 @@
 ### copy this script into ProgramData\Blackmagic Design\DaVinci Resolve\Fusion\Scripts\Utility
 ### run from Davinci Resolve itself. Workspace > scripts.
 
+if not resolve:
+    raise RuntimeError("PANIC: Could not connect to resolve")
+else:
+    print("successfully connected to resolve")
+
 import os
 import csv
 import sys
@@ -36,14 +41,16 @@ OVERLAY_TEMPLATES = [
 ]
 
 TRACK_VIDEO = 1
-TRACK_TAG = 2
-TRACK_SRC_LACKING = 3
-TRACK_SRC_LIST = 4
-TRACK_COMMENTS = 5
-TRACK_TOPIC = 6
+TRACK_MULTICAM = 2
+TRACK_TAG = 3
+TRACK_SRC_LACKING = 4
+TRACK_SRC_LIST = 5
+TRACK_COMMENTS = 6
+TRACK_TOPIC = 7
 
 TRACK_NAMES = {
     TRACK_VIDEO: "VIDEO",
+    TRACK_MULTICAM: "MULTICAM",
     TRACK_TAG: "TAG",
     TRACK_SRC_LACKING: "SRC_LACKING",
     TRACK_SRC_LIST: "SOURCES",

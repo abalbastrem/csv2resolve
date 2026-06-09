@@ -20,7 +20,7 @@ project = pm.GetCurrentProject()
 media_pool = project.GetMediaPool()
 
 # --- CONFIG ---
-SUBFOLDERS = ["mc", "mc_pending", "offline", "online", "single"]
+SUBFOLDERS = ["mc", "mc_pending", "mc_done", "offline", "online", "single"]
 ROOT_NAME = "clips"
 
 def get_subfolders(folder):
